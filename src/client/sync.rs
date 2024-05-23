@@ -743,11 +743,13 @@ fn get_transactions_to_commit(
             // account be included in a single block. If that happens, we'll need to rewrite
             // this check.
 
+            // We do an or here since collisions in te output notes ids or in the account ids /
+            // hashes should be improbable.
             t.input_note_nullifiers.iter().all(|n| nullifiers.contains(n))
-                && t.output_notes.iter().all(|n| note_ids.contains(&n.id()))
-                && account_hash_updates.iter().any(|(account_id, account_hash)| {
-                    *account_id == t.account_id && *account_hash == t.final_account_state
-                })
+                && (t.output_notes.iter().all(|n| note_ids.contains(&n.id()))
+                    || account_hash_updates.iter().any(|(account_id, account_hash)| {
+                        *account_id == t.account_id && *account_hash == t.final_account_state
+                    }))
         })
         .map(|t| t.id)
         .collect()
