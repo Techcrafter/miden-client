@@ -1,5 +1,5 @@
 use alloc::collections::BTreeMap;
-use std::{env::temp_dir, rc::Rc};
+use std::{env::temp_dir, sync::Arc};
 
 use async_trait::async_trait;
 use miden_lib::{transaction::TransactionKernel, AuthScheme};
@@ -780,7 +780,7 @@ pub fn create_test_client() -> MockClient {
 
     let rpc_endpoint = client_config.rpc.endpoint.to_string();
     let store = SqliteStore::new((&client_config).into()).unwrap();
-    let store = Rc::new(store);
+    let store = Arc::new(store);
 
     let rng = get_random_coin();
     let authenticator = StoreAuthenticator::new_with_rng(store.clone(), rng);

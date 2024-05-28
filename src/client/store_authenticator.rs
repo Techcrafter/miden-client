@@ -1,5 +1,5 @@
-use alloc::rc::Rc;
-use core::cell::RefCell;
+use alloc::sync::Arc;
+use std::sync::Mutex;
 
 use miden_objects::{
     accounts::{AccountDelta, AuthSecretKey},
@@ -11,15 +11,15 @@ use rand::Rng;
 
 use crate::store::Store;
 
-/// Represents an authenticator based on a [Store]
+/// An std-compatible representation of an authenticator based on a [Store].
 pub struct StoreAuthenticator<R, S> {
-    store: Rc<S>,
-    rng: RefCell<R>,
+    store: Arc<S>,
+    rng: Mutex<R>,
 }
 
 impl<R: Rng, S: Store> StoreAuthenticator<R, S> {
-    pub fn new_with_rng(store: Rc<S>, rng: R) -> Self {
-        StoreAuthenticator { store, rng: RefCell::new(rng) }
+    pub fn new_with_rng(store: Arc<S>, rng: R) -> Self {
+        StoreAuthenticator { store, rng: Mutex::new(rng) }
     }
 }
 
@@ -37,7 +37,10 @@ impl<R: Rng, S: Store> TransactionAuthenticator for StoreAuthenticator<R, S> {
         message: Word,
         _account_delta: &AccountDelta,
     ) -> Result<Vec<Felt>, AuthenticationError> {
-        let mut rng = self.rng.borrow_mut();
+        let mut rng = self
+            .rng
+            .lock()
+            .map_err(|err| AuthenticationError::InternalError(err.to_string()))?;
 
         let secret_key = self
             .store

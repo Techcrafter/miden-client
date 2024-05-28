@@ -1,4 +1,4 @@
-use std::{env::temp_dir, rc::Rc, time::Duration};
+use std::{env::temp_dir, rc::Rc, sync::Arc, time::Duration};
 
 use figment::{
     providers::{Format, Toml},
@@ -63,7 +63,7 @@ pub fn create_test_client() -> TestClient {
 
     let store = {
         let sqlite_store = SqliteStore::new((&client_config).into()).unwrap();
-        Rc::new(sqlite_store)
+        Arc::new(sqlite_store)
     };
 
     let rng = get_random_coin();

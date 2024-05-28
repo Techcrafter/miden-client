@@ -1,4 +1,4 @@
-use std::{env, rc::Rc};
+use std::{env, sync::Arc};
 
 use clap::Parser;
 use comfy_table::{presets, Attribute, Cell, ContentArrangement, Table};
@@ -112,7 +112,7 @@ impl Cli {
         // Create the client
         let client_config = load_config(current_dir.as_path())?;
         let store = SqliteStore::new((&client_config).into()).map_err(ClientError::StoreError)?;
-        let store = Rc::new(store);
+        let store = Arc::new(store);
 
         let rng = get_random_coin();
         let authenticator = StoreAuthenticator::new_with_rng(store.clone(), rng);

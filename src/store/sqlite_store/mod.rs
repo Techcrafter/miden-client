@@ -1,5 +1,5 @@
 use alloc::collections::BTreeMap;
-use core::cell::{RefCell, RefMut};
+use std::sync::{Mutex, MutexGuard};
 
 use miden_objects::{
     accounts::{Account, AccountId, AccountStub, AuthSecretKey},
@@ -90,7 +90,7 @@ mod transactions;
 /// - Thus, if needed you can create a struct representing the json values and use serde_json to
 /// simplify all of the serialization/deserialization logic
 pub struct SqliteStore {
-    pub(crate) db: RefCell<Connection>,
+    pub(crate) db: Mutex<Connection>,
 }
 
 impl SqliteStore {
@@ -103,12 +103,13 @@ impl SqliteStore {
         array::load_module(&db)?;
         migrations::update_to_latest(&mut db)?;
 
-        Ok(Self { db: RefCell::new(db) })
+        Ok(Self { db: Mutex::new(db) })
     }
 
     /// Returns a mutable reference to the internal [Connection] to the SQL DB
-    pub fn db(&self) -> RefMut<'_, Connection> {
-        self.db.borrow_mut()
+    pub fn db(&self) -> MutexGuard<'_, Connection> {
+        // TODO: Handle possible errors?
+        self.db.lock().expect("should be able to unlock db")
     }
 }
 
@@ -240,7 +241,7 @@ impl Store for SqliteStore {
 
 #[cfg(test)]
 pub mod tests {
-    use std::cell::RefCell;
+    use std::sync::Mutex;
 
     use rusqlite::{vtab::array, Connection};
 
@@ -253,6 +254,6 @@ pub mod tests {
         array::load_module(&db).unwrap();
         migrations::update_to_latest(&mut db).unwrap();
 
-        SqliteStore { db: RefCell::new(db) }
+        SqliteStore { db: Mutex::new(db) }
     }
 }

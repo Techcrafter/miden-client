@@ -1,4 +1,4 @@
-use alloc::rc::Rc;
+use alloc::sync::Arc;
 
 use miden_objects::{
     crypto::rand::{FeltRng, RpoRandomCoin},
@@ -38,7 +38,7 @@ pub use notes::ConsumableNote;
 /// - Executes, proves, and submits transactions to the network as directed by the user.
 pub struct Client<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> {
     /// The client's store, which provides a way to write and read entities to provide persistence.
-    store: Rc<S>,
+    store: Arc<S>,
     /// An instance of [FeltRng] which provides randomness tools for generating new keys,
     /// serial numbers, etc.
     rng: R,
@@ -72,13 +72,13 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> Client
     /// # Errors
     ///
     /// Returns an error if the client could not be instantiated.
-    pub fn new(api: N, rng: R, store: Rc<S>, authenticator: A, in_debug_mode: bool) -> Self {
+    pub fn new(api: N, rng: R, store: Arc<S>, authenticator: A, in_debug_mode: bool) -> Self {
         if in_debug_mode {
             info!("Creating the Client in debug mode.");
         }
 
         let data_store = ClientDataStore::new(store.clone());
-        let authenticator = Some(Rc::new(authenticator));
+        let authenticator = Some(Arc::new(authenticator));
         let tx_executor = TransactionExecutor::new(data_store, authenticator);
 
         Self { store, rng, rpc_api: api, tx_executor }

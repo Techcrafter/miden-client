@@ -1,4 +1,4 @@
-use alloc::{collections::BTreeSet, rc::Rc};
+use alloc::{collections::BTreeSet, sync::Arc};
 use core::fmt;
 
 use miden_objects::{accounts::AccountId, assets::Asset, notes::Note, Word};
@@ -27,11 +27,11 @@ impl fmt::Display for NoteRelevance {
 }
 
 pub struct NoteScreener<S: Store> {
-    store: Rc<S>,
+    store: Arc<S>,
 }
 
 impl<S: Store> NoteScreener<S> {
-    pub fn new(store: Rc<S>) -> Self {
+    pub fn new(store: Arc<S>) -> Self {
         Self { store }
     }
 

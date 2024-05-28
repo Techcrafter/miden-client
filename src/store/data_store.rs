@@ -1,6 +1,6 @@
 use alloc::{
     collections::{BTreeMap, BTreeSet},
-    rc::Rc,
+    sync::Arc,
 };
 
 use miden_objects::{
@@ -22,11 +22,11 @@ use crate::errors::{ClientError, StoreError};
 /// Wrapper structure that helps automatically implement [DataStore] over any [Store]
 pub struct ClientDataStore<S: Store> {
     /// Local database containing information about the accounts managed by this client.
-    pub(crate) store: Rc<S>,
+    pub(crate) store: Arc<S>,
 }
 
 impl<S: Store> ClientDataStore<S> {
-    pub fn new(store: Rc<S>) -> Self {
+    pub fn new(store: Arc<S>) -> Self {
         Self { store }
     }
 }
