@@ -31,7 +31,6 @@ impl ExpectedNote {
         }
     }
 
-
     pub fn authentication_hash(&self) -> Digest {
         match self {
             ExpectedNote::Full(n) => n.authentication_hash(),
