@@ -16,6 +16,7 @@ use miden_objects::{
 use miden_tx::{auth::TransactionAuthenticator, ProvingOptions, ScriptTarget, TransactionProver};
 use rand::Rng;
 use tracing::info;
+use transaction_request::ExpectedNote;
 
 use self::transaction_request::{
     PaymentTransactionData, SwapTransactionData, TransactionRequest, TransactionTemplate,
@@ -48,7 +49,7 @@ impl TransactionResult {
     pub fn new<S: Store>(
         transaction: ExecutedTransaction,
         note_screener: NoteScreener<S>,
-        partial_notes: Vec<NoteDetails>,
+        future_note_details: Vec<NoteDetails>,
     ) -> Result<Self, ClientError> {
         let mut relevant_notes = vec![];
 
@@ -61,7 +62,7 @@ impl TransactionResult {
         }
 
         // Include partial output notes into the relevant notes
-        relevant_notes.extend(partial_notes.iter().map(InputNoteRecord::from));
+        relevant_notes.extend(future_note_details.iter().map(InputNoteRecord::from));
 
         let tx_result = Self { transaction, relevant_notes };
 
@@ -237,7 +238,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> Client
 
         let note_ids = transaction_request.get_input_note_ids();
         let output_notes = transaction_request.expected_output_notes().to_vec();
-        let partial_notes = transaction_request.expected_partial_notes().to_vec();
+        let partial_notes = transaction_request.future_note_details().to_vec();
 
         // Execute the transaction and get the witness
         let executed_transaction = self.tx_executor.execute_transaction(
@@ -384,7 +385,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> Client
         Ok(TransactionRequest::new(
             payment_data.account_id(),
             BTreeMap::new(),
-            vec![created_note],
+            vec![ExpectedNote::Full(created_note)],
             vec![],
             Some(tx_script),
         ))
@@ -434,7 +435,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> Client
         Ok(TransactionRequest::new(
             swap_data.account_id(),
             BTreeMap::new(),
-            vec![created_note],
+            vec![ExpectedNote::Full(created_note)],
             vec![payback_note_details],
             Some(tx_script),
         ))
@@ -482,7 +483,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> Client
         Ok(TransactionRequest::new(
             asset.faucet_id(),
             BTreeMap::new(),
-            vec![created_note],
+            vec![ExpectedNote::Full(created_note)],
             vec![],
             Some(tx_script),
         ))
