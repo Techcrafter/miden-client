@@ -198,7 +198,14 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> Client
                 let notes = notes.iter().map(|id| (*id, None)).collect();
 
                 let tx_script = self.tx_executor.compile_tx_script(program_ast, vec![], vec![])?;
-                Ok(TransactionRequest::new(account_id, notes, vec![], vec![], Some(tx_script)))
+                Ok(TransactionRequest::new(
+                    account_id,
+                    vec![],
+                    notes,
+                    vec![],
+                    vec![],
+                    Some(tx_script),
+                ))
             },
             TransactionTemplate::MintFungibleAsset(asset, target_account_id, note_type) => {
                 self.build_mint_tx_request(asset, target_account_id, note_type)
@@ -372,6 +379,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> Client
 
         Ok(TransactionRequest::new(
             payment_data.account_id(),
+            vec![],
             BTreeMap::new(),
             vec![created_note],
             vec![],
@@ -422,6 +430,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> Client
 
         Ok(TransactionRequest::new(
             swap_data.account_id(),
+            vec![],
             BTreeMap::new(),
             vec![created_note],
             vec![payback_note_details],
@@ -471,6 +480,7 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> Client
 
         Ok(TransactionRequest::new(
             asset.faucet_id(),
+            vec![],
             BTreeMap::new(),
             vec![created_note],
             vec![],
