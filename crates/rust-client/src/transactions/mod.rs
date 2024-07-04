@@ -20,7 +20,7 @@ use super::{rpc::NodeRpcClient, Client, FeltRng};
 use crate::{
     errors::ClientError,
     note_screener::NoteScreener,
-    store::{InputNoteRecord, Store, TransactionFilter},
+    store::{InputNoteRecord, NoteFilter, Store, TransactionFilter},
 };
 
 pub mod transaction_request;
@@ -195,13 +195,16 @@ impl<N: NodeRpcClient, R: FeltRng, S: Store, A: TransactionAuthenticator> Client
             TransactionTemplate::ConsumeNotes(account_id, notes) => {
                 let program_ast = ProgramAst::parse(transaction_request::AUTH_CONSUME_NOTES_SCRIPT)
                     .expect("shipped MASM is well-formed");
-                let notes = notes.iter().map(|id| (*id, None)).collect();
+
+                let notes = self.store.get_input_notes(NoteFilter::List(&notes)).unwrap();
+                let notes: Vec<Note> =
+                    notes.into_iter().map(|note_record| note_record.try_into().unwrap()).collect();
 
                 let tx_script = self.tx_executor.compile_tx_script(program_ast, vec![], vec![])?;
                 Ok(TransactionRequest::new(
                     account_id,
-                    vec![],
                     notes,
+                    BTreeMap::new(),
                     vec![],
                     vec![],
                     Some(tx_script),
