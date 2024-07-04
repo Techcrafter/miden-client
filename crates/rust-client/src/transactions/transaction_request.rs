@@ -4,9 +4,9 @@ use miden_objects::{
     accounts::AccountId,
     assets::{Asset, FungibleAsset},
     notes::{Note, NoteDetails, NoteId, NoteType},
-    transaction::{TransactionArgs, TransactionScript},
+    transaction::{InputNote, InputNotes, TransactionArgs, TransactionScript},
     vm::AdviceMap,
-    Word,
+    Felt, FieldElement, Word, EMPTY_WORD,
 };
 
 // MASM SCRIPTS
@@ -105,7 +105,53 @@ impl TransactionRequest {
 impl From<TransactionRequest> for TransactionArgs {
     fn from(val: TransactionRequest) -> Self {
         let note_args = val.get_note_args();
-        let mut tx_args = TransactionArgs::new(val.tx_script, Some(note_args), val.advice_map);
+
+        let mut advice_map = val.advice_map.clone();
+        let mut note_data = Vec::new();
+        for note in val.unauthenticated_input_notes.iter() {
+            let assets = note.assets();
+            let recipient = note.recipient();
+            let note_arg = &EMPTY_WORD;
+
+            // NOTE: keep map in sync with the `note::get_inputs` API procedure
+            advice_map.extend([(
+                recipient.inputs().commitment(),
+                recipient.inputs().format_for_advice(),
+            )]);
+
+            advice_map.extend([(assets.commitment(), assets.to_padded_assets())]);
+
+            // NOTE: keep in sync with the `prologue::process_input_note_details` kernel procedure
+            note_data.extend(recipient.serial_num());
+            note_data.extend(*recipient.script().hash());
+            note_data.extend(*recipient.inputs().commitment());
+            note_data.extend(*assets.commitment());
+
+            // NOTE: keep in sync with the `prologue::process_note_args_and_metadata` kernel procedure
+            note_data.extend(Word::from(*note_arg));
+            note_data.extend(Word::from(note.metadata()));
+
+            // NOTE: keep in sync with the `prologue::process_note_assets` kernel procedure
+            note_data.push((assets.num_assets() as u32).into());
+            note_data.extend(assets.to_padded_assets());
+
+            // insert note authentication path nodes into the Merkle store.
+
+            // We assume this notes are all unauthenticated so we push a ZERO.
+            note_data.push(Felt::ZERO);
+        }
+
+        let input_notes: Vec<InputNote> = val
+            .unauthenticated_input_notes
+            .into_iter()
+            .map(|note| InputNote::unauthenticated(note))
+            .collect();
+        let input_notes = InputNotes::new(input_notes).unwrap();
+
+        // NOTE: keep map in sync with the `prologue::process_input_notes_data` kernel procedure
+        advice_map.extend([(input_notes.commitment(), note_data)]);
+
+        let mut tx_args = TransactionArgs::new(val.tx_script, Some(note_args), advice_map);
 
         let output_notes = val.expected_output_notes.into_iter();
         tx_args.extend_expected_output_notes(output_notes);
